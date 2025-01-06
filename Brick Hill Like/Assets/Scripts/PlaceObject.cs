@@ -4,10 +4,17 @@ using UnityEngine;
 
 public class PlaceObject : MonoBehaviour
 {
-	public GameObject objectToSpawn;
+	[SerializeField] private GameObject[] prefabs;
+
+	private int objectToSpawn;
 
 	public void OnClick()
 	{
-		Instantiate(objectToSpawn, Vector3.zero, Quaternion.identity);
+		Instantiate(prefabs[objectToSpawn], Vector3.zero, Quaternion.identity);
+	}
+
+	public void SetObjectToSpawn(int index)
+	{
+		objectToSpawn = index;
 	}
 }
