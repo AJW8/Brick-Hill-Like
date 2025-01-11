@@ -1,36 +1,56 @@
 ﻿using UnityEngine;
 public class SelectableBlock : MonoBehaviour
 {
+	[SerializeField] private Color selectedColor;
+	[SerializeField] private bool scalableX, scalableY, scalableZ, isGroup;
+
     private Renderer blockRenderer;
     private Color originalColor;
     public static SelectableBlock SelectedBlock;
+	public static ObjectManager ObjectManager;
+
+	private Vector3 originalScale;
 
     void Start()
     {
-        blockRenderer = GetComponent<Renderer>();
-        originalColor = blockRenderer.material.color;
+		if (!isGroup)
+		{
+			blockRenderer = GetComponent<Renderer> ();
+			originalColor = blockRenderer.material.color;
+		}
+		originalScale = transform.localScale;
     }
 
     void OnMouseDown()
     {
-        if (SelectedBlock != null)
+		if (SelectedBlock != null)
         {
+			ObjectManager.DeselectBlock (this);
             SelectedBlock.Deselect();
+			return;
         }
-
+		ObjectManager.SelectBlock (this);
         SelectedBlock = this;
         Highlight();
         SidebarManager.Instance.UpdateSidebar(this);
     }
 
-    public void Highlight()
+	public void Highlight()
     {
-        blockRenderer.material.color = Color.yellow; // Highlight color
+		if (isGroup)
+		{
+			foreach (Transform child in transform) child.gameObject.GetComponent<SelectableBlock> ().Highlight ();
+		}
+		else blockRenderer.material.color = selectedColor;
     }
 
     public void Deselect()
     {
-        blockRenderer.material.color = originalColor;
+		if (isGroup)
+		{
+			foreach (Transform child in transform) child.gameObject.GetComponent<SelectableBlock> ().Deselect ();
+		}
+        else blockRenderer.material.color = originalColor;
     }
 
     public string GetName()
@@ -65,10 +85,10 @@ public class SelectableBlock : MonoBehaviour
 
     public void SetScale(Vector3 newScale)
     {
-        // Ensure the scale is valid (non-zero and positive)
-        newScale.x = Mathf.Max(0.01f, newScale.x);
-        newScale.y = Mathf.Max(0.01f, newScale.y);
-        newScale.z = Mathf.Max(0.01f, newScale.z);
+        // Ensure the scale is valid (non-zero and positive integer and block is scalable in that dimension)
+		newScale.x = (scalableX ? (int)Mathf.Max(1, newScale.x) : 1) * originalScale.x;
+		newScale.y = (scalableY ? (int)Mathf.Max(1, newScale.y) : 1) * originalScale.y;
+		newScale.z = (scalableZ ? (int)Mathf.Max(1, newScale.z) : 1) * originalScale.z;
 
         transform.localScale = newScale;
     }
@@ -78,4 +98,19 @@ public class SelectableBlock : MonoBehaviour
         blockRenderer.material.color = newColor;
         originalColor = newColor; // Update the original color to persist the change
     }
+
+	public bool[] GetScalable()
+	{
+		return new bool[]{ scalableX, scalableY, scalableZ };
+	}
+
+	public bool IsGroup()
+	{
+		return isGroup;
+	}
+
+	public static void SetObjectManager(ObjectManager om)
+	{
+		ObjectManager = om;
+	}
 }

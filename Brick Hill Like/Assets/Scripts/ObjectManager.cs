@@ -5,35 +5,43 @@ using UnityEngine;
 public class ObjectManager : MonoBehaviour {
 
 	[SerializeField] private int inventoryMaxCapacity;
+	[SerializeField] private GameObject buttonNewGroup, buttonCancelGroup, buttonFinishGroup, buttonUngroup, panelCreatingGroup;
 	[SerializeField] private GameObject groupPrefab;
 
 	private GameObject[] worldObjects; // the objects currently in the level
-	private GameObject[] worldGroups; // the groups currently in the level
 	private GameObject[] inventoryObjects; // the objects currently in the inventory
+
+	private GameObject[] objectsToGroup;
 
 	// Use this for initialization
 	void Start ()
 	{
+		SelectableBlock.SetObjectManager(this);
 		worldObjects = new GameObject[0];
-		worldGroups = new GameObject[0];
 		inventoryObjects = new GameObject[0];
 	}
 	
-	// Update is called once per frame
-	void Update ()
+	public void SelectBlock(SelectableBlock block)
 	{
-		
+		SelectableBlock hob = GetHighestOrderBlock (block);
+		if (objectsToGroup == null) buttonUngroup.SetActive (hob.IsGroup());
+		else AddObjectToGroup (hob.gameObject);
 	}
 
-	public GameObject GetHighestOrderObject(GameObject o)
+	public void DeselectBlock(SelectableBlock block)
 	{
-		if (o == null) return null;
-		GameObject parent = o;
-		GameObject previousParent = null;
+		if (objectsToGroup != null) RemoveObjectFromGroup(GetHighestOrderBlock (block).gameObject);
+	}
+
+	private SelectableBlock GetHighestOrderBlock(SelectableBlock block)
+	{
+		if (block == null) return null;
+		SelectableBlock parent = block;
+		SelectableBlock previousParent = null;
 		do
 		{
 			previousParent = parent;
-			parent = parent.transform.parent.gameObject;
+			parent = parent.transform.parent.gameObject.GetComponent<SelectableBlock>();
 		}
 		while (parent != null);
 		return previousParent;
@@ -46,24 +54,75 @@ public class ObjectManager : MonoBehaviour {
 		worldObjects = list.ToArray ();
 	}
 
-	public void CreateGroup(GameObject[] objectsToGroup)
+	public void StartGroup()
 	{
+		objectsToGroup = new GameObject[0];
+		buttonNewGroup.SetActive (true);
+		buttonCancelGroup.SetActive (false);
+		buttonFinishGroup.SetActive (false);
+	}
+
+	public void AddObjectToGroup(GameObject o)
+	{
+		if (objectsToGroup == null) objectsToGroup = new GameObject[]{ o };
+		else
+		{
+			List<GameObject> list = new List<GameObject> (objectsToGroup);
+			if (!list.Contains(o)) list.Add (o);
+			objectsToGroup = list.ToArray ();
+		}
+		buttonCancelGroup.SetActive (objectsToGroup.Length < 2);
+		buttonFinishGroup.SetActive (objectsToGroup.Length >= 2);
+	}
+
+	public void RemoveObjectFromGroup(GameObject o)
+	{
+		if (objectsToGroup == null) return;
+		List<GameObject> list = new List<GameObject> (objectsToGroup);
+		if (list.Contains(o)) list.Remove (o);
+		objectsToGroup = list.ToArray ();
+		buttonCancelGroup.SetActive (objectsToGroup.Length < 2);
+		buttonFinishGroup.SetActive (objectsToGroup.Length >= 2);
+	}
+
+	public void CancelGroup()
+	{
+		buttonNewGroup.SetActive (true);
+		buttonCancelGroup.SetActive (false);
+		buttonFinishGroup.SetActive (false);
+		if (objectsToGroup == null) return;
+	}
+
+	public void CreateGroup()
+	{
+		if (objectsToGroup == null) return;
+		if (objectsToGroup.Length < 2)
+		{
+			objectsToGroup = null;
+			return;
+		}
 		Vector3 groupPosition = Vector3.zero;
 		foreach (GameObject o in objectsToGroup) groupPosition += o.transform.position / objectsToGroup.Length;
 		GameObject group = Instantiate (groupPrefab, groupPosition, Quaternion.identity);
-		foreach (GameObject o in objectsToGroup) GetHighestOrderObject (o).transform.parent = group.transform;
-		List<GameObject> list = new List<GameObject> (worldGroups);
+		foreach (GameObject o in objectsToGroup) o.transform.parent = group.transform;
+		List<GameObject> list = new List<GameObject> (worldObjects);
 		list.Add (group);
-		worldGroups = list.ToArray ();
+		worldObjects = list.ToArray ();
+		objectsToGroup = null;
+		group.GetComponent<SelectableBlock> ().Deselect ();
+		buttonNewGroup.SetActive (true);
+		buttonCancelGroup.SetActive (false);
+		buttonFinishGroup.SetActive (false);
 	}
 
-	public void RemoveGroup(GameObject o)
+	public void RemoveGroup()
 	{
-		GameObject group = GetHighestOrderObject (o);
-		group.transform.DetachChildren();
-		List<GameObject> list = new List<GameObject> (worldGroups);
+		GameObject group = GetHighestOrderBlock (SelectableBlock.SelectedBlock).gameObject;
+		//group.transform.DetachChildren();
+		foreach (Transform child in group.transform) child.parent = null;
+		List<GameObject> list = new List<GameObject> (worldObjects);
 		list.Remove (group);
-		worldGroups = list.ToArray ();
+		worldObjects = list.ToArray ();
 		Destroy (group);
 	}
 
@@ -88,5 +147,10 @@ public class ObjectManager : MonoBehaviour {
 		List<GameObject> list = new List<GameObject> (inventoryObjects);
 		list.RemoveAt (index);
 		inventoryObjects = list.ToArray ();
+	}
+
+	public bool GetGrouping()
+	{
+		return objectsToGroup != null;
 	}
 }

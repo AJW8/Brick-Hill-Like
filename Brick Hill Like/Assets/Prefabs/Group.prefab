@@ -51,3 +51,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0725a8808f8617748ae6f972611329f0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  selectedColor: {r: 0, g: 1, b: 1, a: 1}
+  scalableX: 0
+  scalableY: 0
+  scalableZ: 0
+  isGroup: 1

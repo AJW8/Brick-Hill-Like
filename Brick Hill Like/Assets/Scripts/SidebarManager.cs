@@ -10,6 +10,8 @@ public class SidebarManager : MonoBehaviour
     public InputField rotationXInput, rotationYInput, rotationZInput;
     public InputField scaleXInput, scaleYInput, scaleZInput;
 
+	[SerializeField] GameObject scaleXPlaceholder, scaleYPlaceholder, scaleZPlaceholder;
+
     private SelectableBlock currentBlock;
 
     private void Awake()
@@ -19,6 +21,11 @@ public class SidebarManager : MonoBehaviour
 
     public void UpdateSidebar(SelectableBlock block)
     {
+		bool[] scalable = block.GetScalable ();
+		scaleXPlaceholder.SetActive(!scalable [0]);
+		scaleYPlaceholder.SetActive(!scalable [1]);
+		scaleZPlaceholder.SetActive(!scalable [2]);
+
         currentBlock = block;
 
         objectNameText.text = block.GetName();
@@ -34,9 +41,9 @@ public class SidebarManager : MonoBehaviour
         rotationZInput.text = rotation.z.ToString();
 
         Vector3 scale = block.GetScale();
-        scaleXInput.text = scale.x.ToString();
-        scaleYInput.text = scale.y.ToString();
-        scaleZInput.text = scale.z.ToString();
+		scaleXInput.text = ((int)scale.x).ToString();
+		scaleYInput.text = ((int)scale.y).ToString();
+		scaleZInput.text = ((int)scale.z).ToString();
     }
 
     public void OnPositionChanged()
@@ -70,10 +77,13 @@ public class SidebarManager : MonoBehaviour
         // Declare variables beforehand
         float x, y, z;
 
-        // Parse scale values and ensure they are valid
-        float scaleX = Mathf.Max(0.01f, float.TryParse(scaleXInput.text, out x) ? x : currentBlock.GetScale().x);
-        float scaleY = Mathf.Max(0.01f, float.TryParse(scaleYInput.text, out y) ? y : currentBlock.GetScale().y);
-        float scaleZ = Mathf.Max(0.01f, float.TryParse(scaleZInput.text, out z) ? z : currentBlock.GetScale().z);
+		//Check which dimensions are scalable for this object
+		bool[] scalable = currentBlock.GetScalable();
+
+		// Parse scale values and ensure they are valid (positive integers)
+		int scaleX = scalable[0] ? (int)Mathf.Max(1, float.TryParse(scaleXInput.text, out x) ? x : currentBlock.GetScale().x) : 1;
+		int scaleY = scalable[1] ? (int)Mathf.Max(1, float.TryParse(scaleYInput.text, out y) ? y : currentBlock.GetScale().y) : 1;
+		int scaleZ = scalable[2] ? (int)Mathf.Max(1, float.TryParse(scaleZInput.text, out z) ? z : currentBlock.GetScale().z) : 1;
 
         Vector3 newScale = new Vector3(scaleX, scaleY, scaleZ);
         currentBlock.SetScale(newScale);

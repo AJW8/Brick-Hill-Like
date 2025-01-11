@@ -6,12 +6,13 @@ using UnityEngine;
 public class PlaceObject : MonoBehaviour
 {
 	[SerializeField] private GameObject[] prefabs;
+	[SerializeField] private ObjectManager objectManager;
 
 	private int objectToSpawn;
 
 	public void OnClick()
 	{
-		Instantiate(prefabs[objectToSpawn], Vector3.zero, Quaternion.identity);
+		objectManager.AddObjectToWorld (Instantiate(prefabs[objectToSpawn], Vector3.zero, Quaternion.identity));
 	}
 
 	public void SetObjectToSpawn(int index)
