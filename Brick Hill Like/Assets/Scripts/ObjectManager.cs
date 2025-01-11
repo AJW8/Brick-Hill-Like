@@ -33,18 +33,18 @@ public class ObjectManager : MonoBehaviour {
 		if (objectsToGroup != null) RemoveObjectFromGroup(GetHighestOrderBlock (block).gameObject);
 	}
 
-	private SelectableBlock GetHighestOrderBlock(SelectableBlock block)
+	public SelectableBlock GetHighestOrderBlock(SelectableBlock block)
 	{
 		if (block == null) return null;
-		SelectableBlock parent = block;
-		SelectableBlock previousParent = null;
+		Transform parent = block.gameObject.transform;
+		Transform previousParent = null;
 		do
 		{
 			previousParent = parent;
-			parent = parent.transform.parent.gameObject.GetComponent<SelectableBlock>();
+			parent = parent.parent;
 		}
 		while (parent != null);
-		return previousParent;
+		return previousParent.gameObject.GetComponent<SelectableBlock>();
 	}
 
 	public void AddObjectToWorld(GameObject o)
@@ -57,9 +57,6 @@ public class ObjectManager : MonoBehaviour {
 	public void StartGroup()
 	{
 		objectsToGroup = new GameObject[0];
-		buttonNewGroup.SetActive (true);
-		buttonCancelGroup.SetActive (false);
-		buttonFinishGroup.SetActive (false);
 	}
 
 	public void AddObjectToGroup(GameObject o)
@@ -87,9 +84,6 @@ public class ObjectManager : MonoBehaviour {
 
 	public void CancelGroup()
 	{
-		buttonNewGroup.SetActive (true);
-		buttonCancelGroup.SetActive (false);
-		buttonFinishGroup.SetActive (false);
 		if (objectsToGroup == null) return;
 	}
 
@@ -110,20 +104,20 @@ public class ObjectManager : MonoBehaviour {
 		worldObjects = list.ToArray ();
 		objectsToGroup = null;
 		group.GetComponent<SelectableBlock> ().Deselect ();
-		buttonNewGroup.SetActive (true);
-		buttonCancelGroup.SetActive (false);
-		buttonFinishGroup.SetActive (false);
 	}
 
 	public void RemoveGroup()
 	{
-		GameObject group = GetHighestOrderBlock (SelectableBlock.SelectedBlock).gameObject;
+		SelectableBlock block = GetHighestOrderBlock (SelectableBlock.SelectedBlock);
+		block.Deselect ();
+		GameObject group = block.gameObject;
 		//group.transform.DetachChildren();
 		foreach (Transform child in group.transform) child.parent = null;
 		List<GameObject> list = new List<GameObject> (worldObjects);
 		list.Remove (group);
 		worldObjects = list.ToArray ();
 		Destroy (group);
+		buttonUngroup.SetActive (false);
 	}
 
 	public void AddObjectToInventory(GameObject o)

@@ -7,12 +7,14 @@ public class PlaceObject : MonoBehaviour
 {
 	[SerializeField] private GameObject[] prefabs;
 	[SerializeField] private ObjectManager objectManager;
+	[SerializeField] private float placementDistance;
 
 	private int objectToSpawn;
 
 	public void OnClick()
 	{
-		objectManager.AddObjectToWorld (Instantiate(prefabs[objectToSpawn], Vector3.zero, Quaternion.identity));
+		Transform cam = Camera.main.transform;
+		objectManager.AddObjectToWorld (Instantiate(prefabs[objectToSpawn], cam.position + cam.forward * placementDistance, Quaternion.identity));
 	}
 
 	public void SetObjectToSpawn(int index)

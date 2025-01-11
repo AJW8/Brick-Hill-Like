@@ -30,14 +30,14 @@ public class SelectableBlock : MonoBehaviour
 			return;
         }
 		ObjectManager.SelectBlock (this);
-        SelectedBlock = this;
+		SelectedBlock = ObjectManager.GetHighestOrderBlock(this); // if this block is part of a group then select the highest order group
         Highlight();
         SidebarManager.Instance.UpdateSidebar(this);
     }
 
 	public void Highlight()
     {
-		if (isGroup)
+		if (isGroup) // if this is a group then highlight all children of the group
 		{
 			foreach (Transform child in transform) child.gameObject.GetComponent<SelectableBlock> ().Highlight ();
 		}
@@ -46,7 +46,7 @@ public class SelectableBlock : MonoBehaviour
 
     public void Deselect()
     {
-		if (isGroup)
+		if (isGroup) // if this is a group then deselect all children of the group
 		{
 			foreach (Transform child in transform) child.gameObject.GetComponent<SelectableBlock> ().Deselect ();
 		}
