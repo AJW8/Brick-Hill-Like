@@ -44,7 +44,7 @@ public class SelectableBlock : MonoBehaviour
         }
     
         // Handle block selection/deselection from ObjectManager
-        SelectableBlock.objectManager.ManageBlockClick(this);
+        SelectableBlock.objectManager.HandleBlockClick(this);
 
         // Sidebar logic
         SidebarManager.Instance?.UpdateSidebar(this);

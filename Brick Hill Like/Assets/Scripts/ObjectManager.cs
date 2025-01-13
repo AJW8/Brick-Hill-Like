@@ -29,8 +29,8 @@ public class ObjectManager : MonoBehaviour
 
 	}
 
-    // Selects a block and updates its state.
-    public void ManageBlockClick(SelectableBlock block)
+    // Handle the clicking of a block.
+    public void HandleBlockClick(SelectableBlock block)
     {
         if (block == null) return;
 
