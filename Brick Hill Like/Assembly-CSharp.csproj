@@ -53,10 +53,13 @@
   <ItemGroup>
      <Compile Include="Assets\Scripts\ColorManager.cs" />
      <Compile Include="Assets\Scripts\DragSystem.cs" />
+     <Compile Include="Assets\Scripts\LoadSceneFromJSON.cs" />
      <Compile Include="Assets\Scripts\MoveCamera.cs" />
      <Compile Include="Assets\Scripts\ObjectManager.cs" />
+     <Compile Include="Assets\Scripts\OpenNewScene.cs" />
      <Compile Include="Assets\Scripts\PlaceObject.cs" />
      <Compile Include="Assets\Scripts\PlayerMovement.cs" />
+     <Compile Include="Assets\Scripts\SaveSceneToJSON.cs" />
      <Compile Include="Assets\Scripts\SelectableBlock.cs" />
      <Compile Include="Assets\Scripts\SidebarManager.cs" />
  <Reference Include="UnityEngine.UI">
