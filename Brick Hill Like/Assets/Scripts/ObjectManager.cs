@@ -1,150 +1,210 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
-public class ObjectManager : MonoBehaviour {
+public class ObjectManager : MonoBehaviour
+{
+    [SerializeField] private int inventoryMaxCapacity; // Max capacity of inventory.
+    [SerializeField] private GameObject buttonNewGroup, buttonCancelGroup, buttonFinishGroup, buttonUngroup, panelCreatingGroup;
+    [SerializeField] private GameObject groupPrefab; // Prefab used for creating groups.
 
-	[SerializeField] private int inventoryMaxCapacity;
-	[SerializeField] private GameObject buttonNewGroup, buttonCancelGroup, buttonFinishGroup, buttonUngroup, panelCreatingGroup;
-	[SerializeField] private GameObject groupPrefab;
+    private GameObject[] worldObjects; // Objects in the world.
+    private GameObject[] inventoryObjects; // Objects stored in inventory.
+    private GameObject[] objectsToGroup; // Objects selected to form a group.
 
-	private GameObject[] worldObjects; // the objects currently in the level
-	private GameObject[] inventoryObjects; // the objects currently in the inventory
+    void Start()
+    {
+        // Initialize empty object arrays and set the ObjectManager in SelectableBlock.
+        worldObjects = new GameObject[0];
+        inventoryObjects = new GameObject[0];
+        SelectableBlock.SetObjectManager(this);
+    }
 
-	private GameObject[] objectsToGroup;
+    // Selects a block and updates its state.
+    public void SelectBlock(SelectableBlock block)
+    {
+        if (block == null) return;
 
-	// Use this for initialization
-	void Start ()
-	{
-		SelectableBlock.SetObjectManager(this);
-		worldObjects = new GameObject[0];
-		inventoryObjects = new GameObject[0];
-	}
-	
-	public void SelectBlock(SelectableBlock block)
-	{
-		SelectableBlock hob = GetHighestOrderBlock (block);
-		if (objectsToGroup == null) buttonUngroup.SetActive (hob.IsGroup());
-		else AddObjectToGroup (hob.gameObject);
-	}
+        // Deselect the current block if another is selected.
+        if (SelectableBlock.SelectedBlock != null && SelectableBlock.SelectedBlock != block)
+        {
+            DeselectBlock(SelectableBlock.SelectedBlock);
+        }
 
-	public void DeselectBlock(SelectableBlock block)
-	{
-		if (objectsToGroup != null) RemoveObjectFromGroup(GetHighestOrderBlock (block).gameObject);
-	}
+        // Highlight the new block and mark it as selected.
+        SelectableBlock.SelectedBlock = block;
+        block.Highlight();
 
-	public SelectableBlock GetHighestOrderBlock(SelectableBlock block)
-	{
-		if (block == null) return null;
-		Transform parent = block.gameObject.transform;
-		Transform previousParent = null;
-		do
-		{
-			previousParent = parent;
-			parent = parent.parent;
-		}
-		while (parent != null);
-		return previousParent.gameObject.GetComponent<SelectableBlock>();
-	}
+        // Show or hide the ungroup button based on whether this block is a group.
+        buttonUngroup?.SetActive(block.IsGroup());
+    }
 
-	public void AddObjectToWorld(GameObject o)
-	{
-		List<GameObject> list = new List<GameObject> (worldObjects);
-		list.Add (o);
-		worldObjects = list.ToArray ();
-	}
+    // Deselects a block and restores its initial state.
+    public void DeselectBlock(SelectableBlock block)
+    {
+        if (block == null) return;
 
-	public void StartGroup()
-	{
-		objectsToGroup = new GameObject[0];
-	}
+        // Find the top-most parent (root) block for deselection.
+        SelectableBlock highestOrderBlock = GetHighestOrderBlock(block);
 
-	public void AddObjectToGroup(GameObject o)
-	{
-		if (objectsToGroup == null) objectsToGroup = new GameObject[]{ o };
-		else
-		{
-			List<GameObject> list = new List<GameObject> (objectsToGroup);
-			if (!list.Contains(o)) list.Add (o);
-			objectsToGroup = list.ToArray ();
-		}
-		buttonCancelGroup.SetActive (objectsToGroup.Length < 2);
-		buttonFinishGroup.SetActive (objectsToGroup.Length >= 2);
-	}
+        // Ensure it's the same block before deselecting.
+        if (SelectableBlock.SelectedBlock == highestOrderBlock)
+        {
+            highestOrderBlock.Deselect();
+            SelectableBlock.SelectedBlock = null;
+        }
+    }
 
-	public void RemoveObjectFromGroup(GameObject o)
-	{
-		if (objectsToGroup == null) return;
-		List<GameObject> list = new List<GameObject> (objectsToGroup);
-		if (list.Contains(o)) list.Remove (o);
-		objectsToGroup = list.ToArray ();
-		buttonCancelGroup.SetActive (objectsToGroup.Length < 2);
-		buttonFinishGroup.SetActive (objectsToGroup.Length >= 2);
-	}
+    // Returns the top-most parent of a block.
+    public SelectableBlock GetHighestOrderBlock(SelectableBlock block)
+    {
+        if (block == null) return null;
 
-	public void CancelGroup()
-	{
-		if (objectsToGroup == null) return;
-	}
+        // Navigate up the hierarchy to find the highest block.
+        Transform parent = block.transform;
+        while (parent.parent != null && parent.parent.GetComponent<SelectableBlock>() != null)
+        {
+            parent = parent.parent;
+        }
 
-	public void CreateGroup()
-	{
-		if (objectsToGroup == null) return;
-		if (objectsToGroup.Length < 2)
-		{
-			objectsToGroup = null;
-			return;
-		}
-		Vector3 groupPosition = Vector3.zero;
-		foreach (GameObject o in objectsToGroup) groupPosition += o.transform.position / objectsToGroup.Length;
-		GameObject group = Instantiate (groupPrefab, groupPosition, Quaternion.identity);
-		foreach (GameObject o in objectsToGroup) o.transform.parent = group.transform;
-		List<GameObject> list = new List<GameObject> (worldObjects);
-		list.Add (group);
-		worldObjects = list.ToArray ();
-		objectsToGroup = null;
-		group.GetComponent<SelectableBlock> ().Deselect ();
-	}
+        return parent.GetComponent<SelectableBlock>();
+    }
 
-	public void RemoveGroup()
-	{
-		SelectableBlock block = GetHighestOrderBlock (SelectableBlock.SelectedBlock);
-		block.Deselect ();
-		GameObject group = block.gameObject;
-		//group.transform.DetachChildren();
-		foreach (Transform child in group.transform) child.parent = null;
-		List<GameObject> list = new List<GameObject> (worldObjects);
-		list.Remove (group);
-		worldObjects = list.ToArray ();
-		Destroy (group);
-		buttonUngroup.SetActive (false);
-	}
+    // Adds an object to the world.
+    public void AddObjectToWorld(GameObject obj)
+    {
+        List<GameObject> list = new List<GameObject>(worldObjects);
+        list.Add(obj);
+        worldObjects = list.ToArray();
+    }
 
-	public void AddObjectToInventory(GameObject o)
-	{
-		GameObject copy = Instantiate (o, Vector3.zero, Quaternion.identity);
-		List<GameObject> list = new List<GameObject> (inventoryObjects);
-		list.Add (copy);
-		inventoryObjects = list.ToArray ();
-		copy.SetActive (false);
-	}
+    // Starts a new group (clearing any previously selected objects).
+    public void StartGroup()
+    {
+        objectsToGroup = new GameObject[0];
+    }
 
-	public GameObject GetObjectFromInventory(int index)
-	{
-		GameObject o = Instantiate (inventoryObjects[index], Vector3.zero, Quaternion.identity);
-		o.SetActive (true);
-		return o;
-	}
+    // Adds an object to the current group selection.
+    public void AddObjectToGroup(GameObject obj)
+    {
+        // Initialize group if needed.
+        if (objectsToGroup == null)
+        {
+            objectsToGroup = new GameObject[] { obj };
+        }
+        else
+        {
+            List<GameObject> list = new List<GameObject>(objectsToGroup);
+            if (!list.Contains(obj)) list.Add(obj);
+            objectsToGroup = list.ToArray();
+        }
 
-	public void RemoveObjectFromInventory(int index)
-	{
-		List<GameObject> list = new List<GameObject> (inventoryObjects);
-		list.RemoveAt (index);
-		inventoryObjects = list.ToArray ();
-	}
+        // Update UI state based on group size.
+        bool hasEnoughObjects = objectsToGroup.Length >= 2;
+        buttonCancelGroup.SetActive(!hasEnoughObjects);
+        buttonFinishGroup.SetActive(hasEnoughObjects);
+    }
 
-	public bool GetGrouping()
-	{
-		return objectsToGroup != null;
-	}
+    // Removes an object from the current group selection.
+    public void RemoveObjectFromGroup(GameObject obj)
+    {
+        if (objectsToGroup == null) return;
+
+        List<GameObject> list = new List<GameObject>(objectsToGroup);
+        if (list.Contains(obj)) list.Remove(obj);
+        objectsToGroup = list.ToArray();
+
+        // Update UI state based on group size.
+        bool hasEnoughObjects = objectsToGroup.Length >= 2;
+        buttonCancelGroup.SetActive(!hasEnoughObjects);
+        buttonFinishGroup.SetActive(hasEnoughObjects);
+    }
+
+    // Creates a new group of selected objects.
+    public void CreateGroup()
+    {
+        if (objectsToGroup == null || objectsToGroup.Length < 2)
+        {
+            objectsToGroup = null;
+            return;
+        }
+
+        // Determine the group's center position based on its objects.
+        Vector3 groupPosition = Vector3.zero;
+        foreach (GameObject obj in objectsToGroup)
+        {
+            groupPosition += obj.transform.position / objectsToGroup.Length;
+        }
+
+        // Instantiate the group and add each object as a child.
+        GameObject group = Instantiate(groupPrefab, groupPosition, Quaternion.identity);
+        foreach (GameObject obj in objectsToGroup)
+        {
+            obj.transform.parent = group.transform;
+        }
+
+        // Add the group to the world and clear the current selection.
+        List<GameObject> list = new List<GameObject>(worldObjects);
+        list.Add(group);
+        worldObjects = list.ToArray();
+
+        objectsToGroup = null;
+        group.GetComponent<SelectableBlock>().Deselect();
+    }
+
+    // Ungroups a selected group by releasing its objects.
+    public void RemoveGroup()
+    {
+        SelectableBlock block = GetHighestOrderBlock(SelectableBlock.SelectedBlock);
+        if (block == null) return;
+
+        block.Deselect();
+        GameObject group = block.gameObject;
+
+        // Detach all child objects.
+        foreach (Transform child in group.transform)
+        {
+            child.parent = null;
+        }
+
+        // Remove the group from the world and destroy it.
+        List<GameObject> list = new List<GameObject>(worldObjects);
+        list.Remove(group);
+        worldObjects = list.ToArray();
+
+        Destroy(group);
+        buttonUngroup.SetActive(false);
+    }
+
+    // Adds a copy of an object to the inventory.
+    public void AddObjectToInventory(GameObject obj)
+    {
+        GameObject copy = Instantiate(obj, Vector3.zero, Quaternion.identity);
+        copy.SetActive(false);
+
+        List<GameObject> list = new List<GameObject>(inventoryObjects);
+        list.Add(copy);
+        inventoryObjects = list.ToArray();
+    }
+
+    // Retrieves an object from the inventory and activates it.
+    public GameObject GetObjectFromInventory(int index)
+    {
+        GameObject obj = Instantiate(inventoryObjects[index], Vector3.zero, Quaternion.identity);
+        obj.SetActive(true);
+        return obj;
+    }
+
+    // Removes an object from the inventory by index.
+    public void RemoveObjectFromInventory(int index)
+    {
+        List<GameObject> list = new List<GameObject>(inventoryObjects);
+        list.RemoveAt(index);
+        inventoryObjects = list.ToArray();
+    }
+
+    // Returns true if grouping is currently active.
+    public bool GetGrouping()
+    {
+        return objectsToGroup != null;
+    }
 }
