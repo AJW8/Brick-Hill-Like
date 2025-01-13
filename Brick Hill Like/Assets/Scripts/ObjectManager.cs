@@ -1,10 +1,12 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class ObjectManager : MonoBehaviour
 {
     [SerializeField] private int inventoryMaxCapacity; // Max capacity of inventory.
-    [SerializeField] private GameObject buttonCancelGroup, buttonFinishGroup, buttonUngroup, panelCreatingGroup;
+	[SerializeField] private Button buttonCopy, buttonUngroup;
+    [SerializeField] private GameObject buttonCancelGroup, buttonFinishGroup, panelCreatingGroup;
     [SerializeField] private GameObject groupPrefab; // Prefab used for creating groups.
 
     private GameObject[] worldObjects; // Objects in the world.
@@ -17,41 +19,57 @@ public class ObjectManager : MonoBehaviour
         worldObjects = new GameObject[0];
         inventoryObjects = new GameObject[0];
         SelectableBlock.SetObjectManager(this);
+		SelectableBlock selectedBlock = SelectableBlock.SelectedBlock;
+		buttonCopy.interactable = selectedBlock != null && objectsToGroup == null; 
+		buttonUngroup.interactable = selectedBlock != null && selectedBlock.IsGroup();
     }
+
+	void Update()
+	{
+
+	}
 
     // Selects a block and updates its state.
-    public void SelectBlock(SelectableBlock block)
+    public void ManageBlockClick(SelectableBlock block)
     {
         if (block == null) return;
 
-        // Deselect the current block if another is selected.
-        if (SelectableBlock.SelectedBlock != null && SelectableBlock.SelectedBlock != block)
-        {
-            DeselectBlock(SelectableBlock.SelectedBlock);
-        }
+		// Find the top-most parent (root) block.
+		SelectableBlock newBlock = GetHighestOrderBlock (block);
+
+		if (SelectableBlock.SelectedBlock != null)
+		{
+			// Deselect the current block unless it is different from the new block and a new group is being created.
+			if (SelectableBlock.SelectedBlock == newBlock || objectsToGroup == null) SelectableBlock.SelectedBlock.Deselect();
+			// Check if the current block is the same as the new block.
+			if (SelectableBlock.SelectedBlock == newBlock)
+			{
+				// Check if creating a new group.
+				if (objectsToGroup != null)
+				{
+					// Remove the current block from the new group.
+					RemoveObjectFromGroup (newBlock.gameObject);
+
+					// Reselect the most recently selected object.
+					if (objectsToGroup.Length > 0) SelectableBlock.SelectedBlock = objectsToGroup [objectsToGroup.Length - 1].GetComponent<SelectableBlock> ();
+				}
+				else SelectableBlock.SelectedBlock = null; // If not creating a new group, then set selected object to none.
+				buttonCopy.interactable = false;
+				return;
+			}
+		}
+		// Add the new block to new group if one is being created.
+		if (objectsToGroup != null) AddObjectToGroup(newBlock.gameObject);
 
         // Highlight the new block and mark it as selected.
-        SelectableBlock.SelectedBlock = block;
-        block.Highlight();
+        SelectableBlock.SelectedBlock = newBlock;
+        newBlock.Highlight();
 
-        // Show or hide the ungroup button based on whether this block is a group.
-        buttonUngroup?.SetActive(block.IsGroup());
-    }
+		//  Set the interactability of the copy button based on whether a new group is being created.
+		buttonCopy.interactable = objectsToGroup == null;
 
-    // Deselects a block and restores its initial state.
-    public void DeselectBlock(SelectableBlock block)
-    {
-        if (block == null) return;
-
-        // Find the top-most parent (root) block for deselection.
-        SelectableBlock highestOrderBlock = GetHighestOrderBlock(block);
-
-        // Ensure it's the same block before deselecting.
-        if (SelectableBlock.SelectedBlock == highestOrderBlock)
-        {
-            highestOrderBlock.Deselect();
-            SelectableBlock.SelectedBlock = null;
-        }
+        // Set the interactability of the ungroup button based on whether this block is a group.
+        buttonUngroup.interactable = newBlock.IsGroup();
     }
 
     // Returns the top-most parent of a block.
@@ -77,15 +95,25 @@ public class ObjectManager : MonoBehaviour
         worldObjects = list.ToArray();
     }
 
+	// Makes a copy of the currently selected object.
+	public void CopyObject()
+	{
+		if (SelectableBlock.SelectedBlock == null) return;
+		Transform cam = Camera.main.transform;
+		GameObject obj = SelectableBlock.SelectedBlock.gameObject;
+		AddObjectToWorld(Instantiate(obj, cam.position + cam.forward * 5, obj.transform.rotation));
+	}
+
     // Starts a new group (automatically adding the currently selected object if any).
     public void StartGroup()
     {
         objectsToGroup = new GameObject[0];
 		if (SelectableBlock.SelectedBlock != null) AddObjectToGroup (SelectableBlock.SelectedBlock.gameObject);
+		buttonCopy.interactable = false;
     }
 
     // Adds an object to the current group selection.
-    public void AddObjectToGroup(GameObject obj)
+    private void AddObjectToGroup(GameObject obj)
     {
         // Initialize group if needed.
         if (objectsToGroup == null)
@@ -106,7 +134,7 @@ public class ObjectManager : MonoBehaviour
     }
 
     // Removes an object from the current group selection.
-    public void RemoveObjectFromGroup(GameObject obj)
+    private void RemoveObjectFromGroup(GameObject obj)
     {
         if (objectsToGroup == null) return;
 
@@ -201,11 +229,5 @@ public class ObjectManager : MonoBehaviour
         List<GameObject> list = new List<GameObject>(inventoryObjects);
         list.RemoveAt(index);
         inventoryObjects = list.ToArray();
-    }
-
-    // Returns true if grouping is currently active.
-    public bool GetGrouping()
-    {
-        return objectsToGroup != null;
     }
 }
