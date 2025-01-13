@@ -4,7 +4,7 @@ using UnityEngine;
 public class ObjectManager : MonoBehaviour
 {
     [SerializeField] private int inventoryMaxCapacity; // Max capacity of inventory.
-    [SerializeField] private GameObject buttonNewGroup, buttonCancelGroup, buttonFinishGroup, buttonUngroup, panelCreatingGroup;
+    [SerializeField] private GameObject buttonCancelGroup, buttonFinishGroup, buttonUngroup, panelCreatingGroup;
     [SerializeField] private GameObject groupPrefab; // Prefab used for creating groups.
 
     private GameObject[] worldObjects; // Objects in the world.
@@ -77,10 +77,11 @@ public class ObjectManager : MonoBehaviour
         worldObjects = list.ToArray();
     }
 
-    // Starts a new group (clearing any previously selected objects).
+    // Starts a new group (automatically adding the currently selected object if any).
     public void StartGroup()
     {
         objectsToGroup = new GameObject[0];
+		if (SelectableBlock.SelectedBlock != null) AddObjectToGroup (SelectableBlock.SelectedBlock.gameObject);
     }
 
     // Adds an object to the current group selection.
@@ -154,6 +155,7 @@ public class ObjectManager : MonoBehaviour
     // Ungroups a selected group by releasing its objects.
     public void RemoveGroup()
     {
+		if (SelectableBlock.SelectedBlock == null) return;
         SelectableBlock block = GetHighestOrderBlock(SelectableBlock.SelectedBlock);
         if (block == null) return;
 
@@ -172,7 +174,6 @@ public class ObjectManager : MonoBehaviour
         worldObjects = list.ToArray();
 
         Destroy(group);
-        buttonUngroup.SetActive(false);
     }
 
     // Adds a copy of an object to the inventory.
